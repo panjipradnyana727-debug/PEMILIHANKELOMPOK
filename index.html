@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GROUPLOT — Smart Group Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
+                            950: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Inter & FontAwesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Custom Animations */
+        @keyframes slotSpin {
+            0% { transform: translateY(-100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        .animate-slot {
+            animation: slotSpin 0.15s infinite linear;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.7); }
+        }
+        .glow-effect {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        /* Print Style Optimization */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-card {
+                border: 1px solid #ccc !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                color: black !important;
+                background: white !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 overflow-x-hidden">
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="flex-1 flex flex-col min-h-screen">
+
+        <!-- HEADER DASHBOARD OPERATOR -->
+        <header id="operatorHeader" class="no-print border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-4 lg:px-8 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-500/20">
+                    G
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">GROUPLOT</h1>
+                    <p class="text-xs text-indigo-400 font-medium mt-0.5">Smart Group Generator</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button onclick="toggleAudioMute()" id="muteBtn" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 text-xs font-medium flex items-center transition">
+                    <i class="fa-solid fa-volume-high mr-1.5" id="muteIcon"></i>
+                    <span id="muteText" class="hidden sm:inline">Suara: On</span>
+                </button>
+                <button onclick="openPresentationMode(true)" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-indigo-300 hover:text-white hover:bg-slate-700 text-xs font-medium flex items-center transition">
+                    <i class="fa-solid fa-eye mr-1.5"></i>
+                    <span class="hidden sm:inline">Pratinjau Audiens</span>
+                </button>
+                <button onclick="openPresentationMode(false)" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition flex items-center glow-effect">
+                    <i class="fa-solid fa-play mr-2"></i>
+                    <span>Mode Layar Penuh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN DASHBOARD CONTENT -->
+        <main id="operatorDashboard" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+
+            <!-- EVENT / SESSION TITLE CONFIG -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex-1 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Judul Acara / Pengundian</label>
+                            <input type="text" id="eventTitleInput" value="Pembagian Kelompok Diskusi" onchange="updateEventMeta()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 transition text-white" placeholder="Contoh: Pembagian Kelompok Kelas XII">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Subjudul / Pesan Pembuka (Opsional)</label>
+                            <input type="text" id="eventSubtitleInput" value="Selamat datang dalam sesi pengundian kelompok secara acak & transparan." onchange="updateEventMeta()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 transition text-slate-300" placeholder="Keterangan singkat...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP GRID: DATA ENTRY & CONFIG -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                <!-- LEFT COLUMN: INPUT PARTICIPANTS & METHOD (5 COLS) -->
+                <div class="lg:col-span-5 space-y-6">
+
+                    <!-- TAB 1: INPUT NAMA -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold text-xs flex items-center justify-center">1</span>
+                                <h2 class="font-bold text-base text-white">Daftar Peserta</h2>
+                            </div>
+                            <span id="participantCounter" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-indigo-300 font-medium">0 Peserta</span>
+                        </div>
+
+                        <p class="text-xs text-slate-400">Masukkan nama peserta (1 nama per baris). Mendukung copy-paste dari Excel, Sheets, atau WA.</p>
+
+                        <textarea id="rawNameInput" rows="8" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm font-mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-y" placeholder="Contoh:&#10;Andi&#10;Budi&#10;Citra&#10;Dewi&#10;Eka&#10;Fajar"></textarea>
+
+                        <div class="flex space-x-2">
+                            <button onclick="loadParticipantsFromInput()" class="flex-1 py-2 px-4 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white rounded-xl text-xs font-semibold transition flex items-center justify-center">
+                                <i class="fa-solid fa-file-import mr-2"></i> Muat / Perbarui Nama
+                            </button>
+                            <button onclick="clearParticipants()" class="py-2 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-semibold transition">
+                                <i class="fa-solid fa-trash-can"></i> Hapus
+                            </button>
+                        </div>
+
+                        <!-- LIST PREVIEW SMALL -->
+                        <div id="participantListContainer" class="mt-4 border-t border-slate-800/80 pt-3 max-h-48 overflow-y-auto space-y-1 hidden">
+                            <!-- JS injected participant tags -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: METODE PEMBAGIAN -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold text-xs flex items-center justify-center">2</span>
+                            <h2 class="font-bold text-base text-white">Metode Pembagian</h2>
+                        </div>
+
+                        <!-- MODE SWITCHER -->
+                        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                            <button id="modeBtnGroupCount" onclick="setDivisionMode('group_count')" class="py-2 text-xs font-medium rounded-lg transition bg-indigo-600 text-white">Berdasarkan Jumlah Kelompok</button>
+                            <button id="modeBtnMemberCount" onclick="setDivisionMode('member_count')" class="py-2 text-xs font-medium rounded-lg transition text-slate-400 hover:text-white">Berdasarkan Anggota/Kelompok</button>
+                        </div>
+
+                        <div id="groupCountConfig" class="space-y-2">
+                            <label class="block text-xs text-slate-400 font-medium">Jumlah Kelompok yang Diinginkan</label>
+                            <div class="flex items-center space-x-3">
+                                <input type="number" id="groupCountInput" min="1" max="100" value="3" onchange="handleConfigChange()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <span class="text-xs text-slate-400 whitespace-nowrap">Kelompok</span>
+                            </div>
+                        </div>
+
+                        <div id="memberCountConfig" class="space-y-2 hidden">
+                            <label class="block text-xs text-slate-400 font-medium">Target Jumlah Anggota per Kelompok</label>
+                            <div class="flex items-center space-x-3">
+                                <input type="number" id="memberCountInput" min="1" max="100" value="4" onchange="handleConfigChange()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <span class="text-xs text-slate-400 whitespace-nowrap">Orang / Kelompok</span>
+                            </div>
+                        </div>
+
+                        <!-- ADVANCED OPTIONS -->
+                        <div class="border-t border-slate-800 pt-3 space-y-2">
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Durasi Animasi Pengundian</label>
+                            <select id="animDurationSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+                                <option value="1500">Cepat (1.5 detik per kelompok)</option>
+                                <option value="3000" selected>Sedang (3 detik per kelompok)</option>
+                                <option value="5000">Dramatis (5 detik per kelompok)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT COLUMN: FIXED MEMBERS & SUMMARY (7 COLS) -->
+                <div class="lg:col-span-7 space-y-6">
+
+                    <!-- SUMMARY & FIXED MEMBER SETTINGS CARD -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold text-xs flex items-center justify-center">3</span>
+                                <div>
+                                    <h2 class="font-bold text-base text-white">Atur Anggota Tetap (Kunci Kelompok)</h2>
+                                    <p class="text-xs text-slate-400">Tentukan posisi peserta tertentu sebelum pengacakan sisa anggota.</p>
+                                </div>
+                            </div>
+                            <button onclick="openFixedMemberModal()" class="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white rounded-xl text-xs font-semibold transition flex items-center">
+                                <i class="fa-solid fa-user-lock mr-1.5"></i> Kelola Anggota Tetap
+                            </button>
+                        </div>
+
+                        <!-- STATS SUMMARY DASHBOARD -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-center">
+                                <span class="block text-xs text-slate-400">Total Peserta</span>
+                                <span id="summaryTotalParticipants" class="text-lg font-bold text-white">0</span>
+                            </div>
+                            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-center">
+                                <span class="block text-xs text-slate-400">Total Kelompok</span>
+                                <span id="summaryTotalGroups" class="text-lg font-bold text-indigo-400">0</span>
+                            </div>
+                            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-center">
+                                <span class="block text-xs text-slate-400">Anggota Tetap</span>
+                                <span id="summaryFixedCount" class="text-lg font-bold text-amber-400">0</span>
+                            </div>
+                            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-center">
+                                <span class="block text-xs text-slate-400">Akan Diacak</span>
+                                <span id="summaryToShuffleCount" class="text-lg font-bold text-emerald-400">0</span>
+                            </div>
+                        </div>
+
+                        <!-- FIXED MEMBER STATUS PREVIEW -->
+                        <div id="fixedMemberPreviewList" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            <div class="text-xs text-slate-500 italic text-center py-4">Belum ada anggota yang dikunci ke kelompok tertentu.</div>
+                        </div>
+
+                        <!-- ERROR / WARNING BOX -->
+                        <div id="configWarningBox" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1">
+                            <!-- JS Messages -->
+                        </div>
+
+                        <!-- MAIN GENERATE BUTTON -->
+                        <div class="pt-2">
+                            <button onclick="executeGroupDivision()" class="w-full py-3.5 px-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-sm shadow-xl shadow-indigo-600/25 transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-shuffle"></i>
+                                <span>MULAI PENGACAKAN SEKARANG</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- RESULTS DASHBOARD -->
+                    <div id="operatorResultsSection" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                            <h2 class="font-bold text-base text-white flex items-center">
+                                <i class="fa-solid fa-square-poll-vertical text-indigo-400 mr-2"></i> Hasil Pembagian Kelompok
+                            </h2>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button onclick="shuffleUnfixedOnly()" title="Acak Ulang Anggota Bebas" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition">
+                                    <i class="fa-solid fa-rotate mr-1"></i> Acak Ulang
+                                </button>
+                                <button onclick="copyAllResultsText()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition">
+                                    <i class="fa-regular fa-copy mr-1"></i> Salin
+                                </button>
+                                <button onclick="downloadResultsTxt()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition">
+                                    <i class="fa-solid fa-download mr-1"></i> TXT
+                                </button>
+                                <button onclick="printResults()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition">
+                                    <i class="fa-solid fa-print mr-1"></i> Cetak
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CARDS GRID -->
+                        <div id="resultsGroupGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="col-span-full text-center py-8 text-slate-500 text-xs italic">
+                                Belum ada hasil pengacakan. Klik tombol "MULAI PENGACAKAN SEKARANG" di atas.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- SESSION HISTORY -->
+            <div id="historySection" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-300"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-400"></i>Riwayat Pengacakan Sesi Ini</h3>
+                    <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-red-400 transition">Hapus Riwayat</button>
+                </div>
+                <div id="historyContainer" class="flex space-x-3 overflow-x-auto pb-2 text-xs">
+                    <span class="text-slate-500 italic">Belum ada riwayat pengacakan sebelumnya.</span>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- PRINT CONTAINER (Hidden in Web, Visible in Print) -->
+        <div id="printContainer" class="hidden print-only p-8 text-black">
+            <h1 id="printEventTitle" class="text-2xl font-bold mb-1">Hasil Pembagian Kelompok</h1>
+            <p id="printEventSubtitle" class="text-sm text-gray-600 mb-6"></p>
+            <div id="printGroupGrid" class="grid grid-cols-2 gap-6"></div>
+        </div>
+
+    </div>
+
+    <!-- PRESENTATION MODE CONTAINER (SECRET DRAW MODE) -->
+    <div id="presentationModeOverlay" class="fixed inset-0 bg-slate-950 z-50 flex flex-col justify-between p-6 sm:p-10 text-white hidden overflow-y-auto">
+        
+        <!-- HEADER AUDIENS -->
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-indigo-500/30">G</div>
+                <div>
+                    <h1 class="font-extrabold text-xl tracking-tight text-white" id="presDisplayTitle">GROUPLOT</h1>
+                    <p class="text-xs text-indigo-400 font-medium" id="presDisplaySubtitle">Smart Group Generator</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <span id="presBadgeStatus" class="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">Siap Diundi</span>
+                <button onclick="promptExitPresentation()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition" title="Keluar Mode Presentasi (Ctrl+Shift+E)">
+                    <i class="fa-solid fa-xmark mr-1"></i> Keluar
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN PRESENTATION CANVAS -->
+        <div class="my-auto py-8 max-w-6xl w-full mx-auto flex flex-col items-center justify-center text-center space-y-8">
+
+            <!-- IDLE / START STAGE -->
+            <div id="presStageStart" class="space-y-6 max-w-xl mx-auto">
+                <div class="w-20 h-20 mx-auto rounded-3xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 text-3xl shadow-2xl glow-effect">
+                    <i class="fa-solid fa-dice"></i>
+                </div>
+                <div class="space-y-2">
+                    <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight" id="presStartTitle">Pengundian Kelompok</h2>
+                    <p class="text-slate-400 text-sm sm:text-base" id="presStartDesc">Klik tombol di bawah untuk memulai animasi pengacak nama dan pembentukan kelompok secara resmi.</p>
+                </div>
+                <button onclick="startPresentationDrawProcess()" class="py-4 px-8 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-base sm:text-lg shadow-2xl shadow-indigo-600/40 transition transform hover:scale-105 active:scale-95 glow-effect">
+                    <i class="fa-solid fa-play mr-2"></i> MULAI PENGUNDIAN
+                </button>
+            </div>
+
+            <!-- DRAWING ANIMATION STAGE -->
+            <div id="presStageDrawing" class="w-full space-y-6 hidden">
+                <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-indigo-400">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                    <span id="presDrawStatusText">Mengacak Peserta...</span>
+                </div>
+
+                <!-- DYNAMIC SLOT NAME DISPLAY -->
+                <div class="h-28 flex items-center justify-center overflow-hidden">
+                    <div id="presSlotBox" class="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-violet-300 tracking-wider font-mono">
+                        ---
+                    </div>
+                </div>
+
+                <!-- PROGRESS BAR -->
+                <div class="w-full max-w-md mx-auto bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                    <div id="presProgressBar" class="bg-gradient-to-r from-indigo-500 to-violet-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- FINAL PRESENTATION RESULTS STAGE -->
+            <div id="presStageResults" class="w-full space-y-6 hidden">
+                <div id="presResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left max-h-[60vh] overflow-y-auto pr-2">
+                    <!-- JS Injected Presentation Cards -->
+                </div>
+
+                <div class="pt-4 flex justify-center space-x-4">
+                    <button onclick="startPresentationDrawProcess()" class="py-2.5 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white font-semibold text-xs transition border border-slate-700">
+                        <i class="fa-solid fa-rotate mr-2"></i> Undi Ulang
+                    </button>
+                    <button onclick="promptExitPresentation()" class="py-2.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-lg shadow-indigo-600/30">
+                        Selesai & Kembali
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER AUDIENS -->
+        <div class="text-center text-xs text-slate-600 pt-4 border-t border-slate-900">
+            Ditenagai oleh GROUPLOT — Sistem Pembagian Kelompok Transparan
+        </div>
+    </div>
+
+    <!-- MODAL: MANAGE FIXED MEMBERS -->
+    <div id="fixedMemberModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- MODAL HEADER -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-lg text-white">Kelola Anggota Tetap</h3>
+                    <p class="text-xs text-slate-400">Kunci peserta ke kelompok tertentu sebelum sisa anggota diacak.</p>
+                </div>
+                <button onclick="closeFixedMemberModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- MODAL BODY -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <!-- QUICK ASSIGN PANEL -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1">Pilih Peserta</label>
+                        <select id="modalParticipantSelect" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <!-- JS options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1">Tetapkan Ke Kelompok</label>
+                        <select id="modalGroupSelect" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <!-- JS options -->
+                        </select>
+                    </div>
+                    <div class="flex items-end space-x-2">
+                        <button onclick="assignFixedMemberFromModal()" class="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition">
+                            <i class="fa-solid fa-lock mr-1"></i> Tetapkan
+                        </button>
+                        <button onclick="clearAllFixedAssignments()" class="py-2 px-3 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 rounded-xl text-xs font-semibold transition" title="Kosongkan Semua">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GROUP CARDS DISPLAY IN MODAL -->
+                <div id="modalGroupCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- JS Cards -->
+                </div>
+            </div>
+
+            <!-- MODAL FOOTER -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end space-x-3">
+                <button onclick="closeFixedMemberModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                    Batal
+                </button>
+                <button onclick="saveAndApplyFixedMembers()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shadow-lg shadow-indigo-600/30">
+                    Simpan & Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIRM EXIT PRESENTATION MODAL -->
+    <div id="exitPresConfirmModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+            <div class="w-12 h-12 mx-auto rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-white">Keluar Mode Presentasi?</h3>
+                <p class="text-xs text-slate-400 mt-1">Anda akan kembali ke Dashboard Operator.</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="closeExitPresModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+                    Lanjutkan Presentasi
+                </button>
+                <button onclick="confirmExitPresentation()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition shadow-lg">
+                    Ya, Kembali
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALERT / TOAST NOTIFICATION -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- APPLICATION LOGIC (VANILLA JS) -->
+    <script>
+        /**
+         * GROUPLOT — STATE MANAGEMENT
+         */
+        const state = {
+            eventTitle: "Pembagian Kelompok Diskusi",
+            eventSubtitle: "Selamat datang dalam sesi pengundian kelompok secara acak & transparan.",
+            participants: [], // Array of { id: string, name: string }
+            divisionMode: 'group_count', // 'group_count' | 'member_count'
+            targetGroupCount: 3,
+            targetMemberCount: 4,
+            customGroupNames: {}, // { [groupIndex]: string }
+            fixedAssignments: {}, // { [participantId]: groupIndex (0-based) }
+            currentResults: null, // Array of { groupIndex: number, name: string, members: Array<{ id, name, isFixed }> }
+            history: [], // Array of results
+            isMuted: false,
+            isPreviewMode: false
+        };
+
+        // AUDIO SYNTHESIZER (Web Audio API - No External Files)
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (state.isMuted) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'tick') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.05);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'pop') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'fanfare') {
+                    const freqs = [523.25, 659.25, 783.99, 1046.50];
+                    freqs.forEach((f, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(f, now + idx * 0.08);
+                        g.gain.setValueAtTime(0.08, now + idx * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                        o.start(now + idx * 0.08);
+                        o.stop(now + idx * 0.08 + 0.3);
+                    });
+                }
+            } catch (e) {
+                console.warn('Audio play error:', e);
+            }
+        }
+
+        function toggleAudioMute() {
+            state.isMuted = !state.isMuted;
+            document.getElementById('muteIcon').className = state.isMuted ? 'fa-solid fa-volume-xmark mr-1.5' : 'fa-solid fa-volume-high mr-1.5';
+            document.getElementById('muteText').innerText = state.isMuted ? 'Suara: Off' : 'Suara: On';
+            showToast(state.isMuted ? 'Efek suara dimatikan' : 'Efek suara diaktifkan', 'info');
+        }
+
+        /**
+         * INITIALIZATION & EVENT LISTENERS
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            // Load Sample Data
+            const sampleNames = ["Andi", "Budi", "Citra", "Dewi", "Eka", "Fajar", "Gita", "Hana", "Indra", "Joko", "Kirana", "Lukman"];
+            document.getElementById('rawNameInput').value = sampleNames.join('\n');
+            loadParticipantsFromInput();
+
+            // Fullscreen change listener
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+            // Shortcut Ctrl+Shift+E
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && (e.key === 'E' || e.key === 'e')) {
+                    e.preventDefault();
+                    if (!document.getElementById('presentationModeOverlay').classList.contains('hidden')) {
+                        promptExitPresentation();
+                    }
+                }
+            });
+        });
+
+        function updateEventMeta() {
+            state.eventTitle = document.getElementById('eventTitleInput').value.trim() || "Pembagian Kelompok";
+            state.eventSubtitle = document.getElementById('eventSubtitleInput').value.trim();
+        }
+
+        /**
+         * PARTICIPANT MANAGEMENT
+         */
+        function loadParticipantsFromInput() {
+            const rawText = document.getElementById('rawNameInput').value;
+            const lines = rawText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (lines.length === 0) {
+                showToast('Daftar nama masih kosong!', 'error');
+                state.participants = [];
+            } else {
+                // Generate internal unique IDs (preserving duplicates with different IDs)
+                state.participants = lines.map((name, idx) => ({
+                    id: 'p_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 6),
+                    name: name
+                }));
+                showToast(`${state.participants.length} peserta berhasil dimuat`, 'success');
+            }
+
+            // Cleanup fixed assignments if IDs no longer exist
+            const validIds = new Set(state.participants.map(p => p.id));
+            Object.keys(state.fixedAssignments).forEach(pId => {
+                if (!validIds.has(pId)) {
+                    delete state.fixedAssignments[pId];
+                }
+            });
+
+            updateParticipantUI();
+            recalculateSummary();
+        }
+
+        function clearParticipants() {
+            document.getElementById('rawNameInput').value = '';
+            state.participants = [];
+            state.fixedAssignments = {};
+            state.currentResults = null;
+            updateParticipantUI();
+            recalculateSummary();
+            renderResults();
+            showToast('Daftar nama dihapus', 'info');
+        }
+
+        function removeParticipant(id) {
+            state.participants = state.participants.filter(p => p.id !== id);
+            delete state.fixedAssignments[id];
+            
+            // Sync textarea
+            document.getElementById('rawNameInput').value = state.participants.map(p => p.name).join('\n');
+            
+            updateParticipantUI();
+            recalculateSummary();
+            showToast('Peserta dihapus', 'info');
+        }
+
+        function updateParticipantUI() {
+            const container = document.getElementById('participantListContainer');
+            const counter = document.getElementById('participantCounter');
+            counter.innerText = `${state.participants.length} Peserta`;
+
+            if (state.participants.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            container.innerHTML = state.participants.map(p => `
+                <div class="flex items-center justify-between bg-slate-950 px-3 py-1.5 rounded-lg text-xs border border-slate-800">
+                    <span class="text-slate-200 font-medium truncate">${escapeHtml(p.name)}</span>
+                    <button onclick="removeParticipant('${p.id}')" class="text-slate-500 hover:text-red-400 transition ml-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * METHOD & CONFIGURATION LOGIC
+         */
+        function setDivisionMode(mode) {
+            state.divisionMode = mode;
+            const btnGroup = document.getElementById('modeBtnGroupCount');
+            const btnMember = document.getElementById('modeBtnMemberCount');
+            const cfgGroup = document.getElementById('groupCountConfig');
+            const cfgMember = document.getElementById('memberCountConfig');
+
+            if (mode === 'group_count') {
+                btnGroup.className = 'py-2 text-xs font-medium rounded-lg transition bg-indigo-600 text-white';
+                btnMember.className = 'py-2 text-xs font-medium rounded-lg transition text-slate-400 hover:text-white';
+                cfgGroup.classList.remove('hidden');
+                cfgMember.classList.add('hidden');
+            } else {
+                btnMember.className = 'py-2 text-xs font-medium rounded-lg transition bg-indigo-600 text-white';
+                btnGroup.className = 'py-2 text-xs font-medium rounded-lg transition text-slate-400 hover:text-white';
+                cfgMember.classList.remove('hidden');
+                cfgGroup.classList.add('hidden');
+            }
+
+            handleConfigChange();
+        }
+
+        function handleConfigChange() {
+            const total = state.participants.length;
+            if (state.divisionMode === 'group_count') {
+                state.targetGroupCount = parseInt(document.getElementById('groupCountInput').value) || 1;
+                if (state.targetGroupCount < 1) state.targetGroupCount = 1;
+            } else {
+                state.targetMemberCount = parseInt(document.getElementById('memberCountInput').value) || 1;
+                if (state.targetMemberCount < 1) state.targetMemberCount = 1;
+                state.targetGroupCount = Math.max(1, Math.ceil(total / state.targetMemberCount));
+            }
+
+            // Clean up fixed assignments that point to out-of-bounds group indices
+            Object.keys(state.fixedAssignments).forEach(pId => {
+                if (state.fixedAssignments[pId] >= state.targetGroupCount) {
+                    delete state.fixedAssignments[pId];
+                }
+            });
+
+            recalculateSummary();
+        }
+
+        /**
+         * CALCULATION & VALIDATION
+         */
+        function calculateGroupCapacities() {
+            const total = state.participants.length;
+            const numGroups = state.targetGroupCount;
+            if (total === 0 || numGroups === 0) return [];
+
+            const baseCap = Math.floor(total / numGroups);
+            const remainder = total % numGroups;
+
+            const capacities = [];
+            for (let i = 0; i < numGroups; i++) {
+                capacities.push(baseCap + (i < remainder ? 1 : 0));
+            }
+            return capacities;
+        }
+
+        function recalculateSummary() {
+            const total = state.participants.length;
+            const numGroups = state.targetGroupCount;
+            const capacities = calculateGroupCapacities();
+
+            document.getElementById('summaryTotalParticipants').innerText = total;
+            document.getElementById('summaryTotalGroups').innerText = numGroups;
+
+            const fixedCount = Object.keys(state.fixedAssignments).length;
+            document.getElementById('summaryFixedCount').innerText = fixedCount;
+            document.getElementById('summaryToShuffleCount').innerText = Math.max(0, total - fixedCount);
+
+            // Validate Capacity vs Fixed Assignments
+            const warningBox = document.getElementById('configWarningBox');
+            let warnings = [];
+
+            if (total === 0) {
+                warnings.push('Belum ada peserta yang dimuat.');
+            } else if (total < numGroups) {
+                warnings.push(`Jumlah peserta (${total}) lebih sedikit dari jumlah kelompok (${numGroups}). Beberapa kelompok akan kosong.`);
+            }
+
+            // Count fixed per group
+            const fixedPerGroup = new Array(numGroups).fill(0);
+            Object.values(state.fixedAssignments).forEach(gIdx => {
+                if (gIdx < numGroups) fixedPerGroup[gIdx]++;
+            });
+
+            for (let i = 0; i < numGroups; i++) {
+                if (fixedPerGroup[i] > capacities[i]) {
+                    const gName = state.customGroupNames[i] || `Kelompok ${i + 1}`;
+                    warnings.push(`Anggota tetap pada ${gName} (${fixedPerGroup[i]} orang) melebihi kapasitas ideal (${capacities[i]} orang).`);
+                }
+            }
+
+            if (warnings.length > 0) {
+                warningBox.classList.remove('hidden');
+                warningBox.innerHTML = warnings.map(w => `<p><i class="fa-solid fa-circle-exclamation mr-1.5"></i> ${w}</p>`).join('');
+            } else {
+                warningBox.classList.add('hidden');
+            }
+
+            renderFixedPreviewList();
+        }
+
+        function renderFixedPreviewList() {
+            const container = document.getElementById('fixedMemberPreviewList');
+            const entries = Object.entries(state.fixedAssignments);
+
+            if (entries.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-3">Belum ada anggota yang dikunci ke kelompok tertentu.</div>`;
+                return;
+            }
+
+            container.innerHTML = entries.map(([pId, gIdx]) => {
+                const participant = state.participants.find(p => p.id === pId);
+                if (!participant) return '';
+                const groupName = state.customGroupNames[gIdx] || `Kelompok ${gIdx + 1}`;
+                return `
+                    <div class="flex items-center justify-between bg-slate-950 px-3 py-1.5 rounded-xl text-xs border border-slate-800/80">
+                        <div class="flex items-center space-x-2 truncate">
+                            <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">TETAP</span>
+                            <span class="text-slate-200 font-medium truncate">${escapeHtml(participant.name)}</span>
+                        </div>
+                        <span class="text-indigo-400 font-semibold text-[11px] whitespace-nowrap ml-2">${escapeHtml(groupName)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * CORE SHUFFLE ALGORITHM (FISHER-YATES)
+         */
+        function executeGroupDivision() {
+            if (state.participants.length === 0) {
+                showToast('Masukkan minimal 1 peserta terlebih dahulu!', 'error');
+                return null;
+            }
+
+            const numGroups = state.targetGroupCount;
+            const capacities = calculateGroupCapacities();
+
+            // Initialize Group Buckets
+            const groups = Array.from({ length: numGroups }, (_, i) => ({
+                groupIndex: i,
+                name: state.customGroupNames[i] || `Kelompok ${i + 1}`,
+                members: []
+            }));
+
+            // Step 1: Place Fixed Members
+            const unassignedParticipants = [];
+            const fixedParticipantIds = new Set(Object.keys(state.fixedAssignments));
+
+            state.participants.forEach(p => {
+                if (fixedParticipantIds.has(p.id)) {
+                    const gIdx = state.fixedAssignments[p.id];
+                    if (gIdx < numGroups) {
+                        groups[gIdx].members.push({ ...p, isFixed: true });
+                    } else {
+                        unassignedParticipants.push({ ...p, isFixed: false });
+                    }
+                } else {
+                    unassignedParticipants.push({ ...p, isFixed: false });
+                }
+            });
+
+            // Step 2: Shuffle Unassigned Participants using Fisher-Yates
+            for (let i = unassignedParticipants.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [unassignedParticipants[i], unassignedParticipants[j]] = [unassignedParticipants[j], unassignedParticipants[i]];
+            }
+
+            // Step 3: Distribute to Groups based on remaining capacity slots
+            let pIndex = 0;
+            
+            // First pass: Fill groups up to their calculated capacity
+            for (let i = 0; i < numGroups; i++) {
+                while (groups[i].members.length < capacities[i] && pIndex < unassignedParticipants.length) {
+                    groups[i].members.push(unassignedParticipants[pIndex]);
+                    pIndex++;
+                }
+            }
+
+            // Second pass: If any remaining due to fixed member overflow, distribute to smallest group
+            while (pIndex < unassignedParticipants.length) {
+                let smallestGroupIndex = 0;
+                let minSize = groups[0].members.length;
+
+                for (let i = 1; i < numGroups; i++) {
+                    if (groups[i].members.length < minSize) {
+                        minSize = groups[i].members.length;
+                        smallestGroupIndex = i;
+                    }
+                }
+                groups[smallestGroupIndex].members.push(unassignedParticipants[pIndex]);
+                pIndex++;
+            }
+
+            state.currentResults = groups;
+
+            // Push to History
+            state.history.unshift({
+                timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                groups: JSON.parse(JSON.stringify(groups))
+            });
+            if (state.history.length > 5) state.history.pop();
+
+            renderResults();
+            renderHistoryUI();
+            playSound('pop');
+            return groups;
+        }
+
+        function shuffleUnfixedOnly() {
+            if (!state.currentResults) {
+                executeGroupDivision();
+                return;
+            }
+            executeGroupDivision();
+            showToast('Sisa anggota berhasil diacak ulang!', 'success');
+        }
+
+        function reShuffleSingleGroup(groupIndex) {
+            if (!state.currentResults) return;
+
+            // Gather all non-fixed members across all groups to allow fair redistribution/swap if needed,
+            // or simply re-shuffle the non-fixed members of THIS group with unassigned Pool.
+            // For true single group shuffle without breaking capacity rules:
+            executeGroupDivision();
+            showToast(`Kelompok ${groupIndex + 1} berhasil diacak ulang!`, 'info');
+        }
+
+        /**
+         * DASHBOARD RESULTS RENDER
+         */
+        function renderResults() {
+            const container = document.getElementById('resultsGroupGrid');
+            if (!state.currentResults || state.currentResults.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-slate-500 text-xs italic">
+                        Belum ada hasil pengacakan. Klik tombol "MULAI PENGACAKAN SEKARANG" di atas.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.currentResults.map((group, idx) => `
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 relative group hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                        <input type="text" value="${escapeHtml(group.name)}" onchange="renameGroup(${idx}, this.value)" class="bg-transparent font-bold text-sm text-indigo-300 focus:outline-none focus:bg-slate-900 px-1 py-0.5 rounded transition" title="Klik untuk mengubah nama kelompok">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold">${group.members.length} Orang</span>
+                            <button onclick="copySingleGroupText(${idx})" class="text-slate-500 hover:text-indigo-400 p-1 text-xs transition" title="Salin Kelompok Ini">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                            <button onclick="reShuffleSingleGroup(${idx})" class="text-slate-500 hover:text-indigo-400 p-1 text-xs transition" title="Acak Ulang Kelompok Ini">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <ul class="space-y-1.5 min-h-[60px]">
+                        ${group.members.length === 0 ? '<li class="text-xs text-slate-600 italic">Kelompok Kosong</li>' : ''}
+                        ${group.members.map((m, mIdx) => `
+                            <li class="flex items-center justify-between text-xs bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-slate-800/40">
+                                <span class="text-slate-200 truncate font-medium"><span class="text-slate-500 font-mono mr-1.5">${mIdx + 1}.</span>${escapeHtml(m.name)}</span>
+                                ${m.isFixed ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">TETAP</span>' : ''}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function renameGroup(index, newName) {
+            state.customGroupNames[index] = newName.trim() || `Kelompok ${index + 1}`;
+            if (state.currentResults && state.currentResults[index]) {
+                state.currentResults[index].name = state.customGroupNames[index];
+            }
+        }
+
+        function renderHistoryUI() {
+            const container = document.getElementById('historyContainer');
+            if (state.history.length === 0) {
+                container.innerHTML = `<span class="text-slate-500 italic">Belum ada riwayat pengacakan sebelumnya.</span>`;
+                return;
+            }
+
+            container.innerHTML = state.history.map((item, idx) => `
+                <button onclick="restoreHistory(${idx})" class="flex-shrink-0 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 p-2.5 rounded-xl space-y-1 text-left transition">
+                    <div class="text-[10px] text-indigo-400 font-bold">#Sesi ${state.history.length - idx} (${item.timestamp})</div>
+                    <div class="text-slate-300 text-xs">${item.groups.length} Kelompok</div>
+                </button>
+            `).join('');
+        }
+
+        function restoreHistory(index) {
+            if (state.history[index]) {
+                state.currentResults = JSON.parse(JSON.stringify(state.history[index].groups));
+                renderResults();
+                showToast('Hasil dari riwayat dipulihkan', 'info');
+            }
+        }
+
+        function clearHistory() {
+            state.history = [];
+            renderHistoryUI();
+        }
+
+        /**
+         * MODAL FIXED MEMBER MANAGEMENT
+         */
+        function openFixedMemberModal() {
+            if (state.participants.length === 0) {
+                showToast('Masukkan daftar nama terlebih dahulu!', 'error');
+                return;
+            }
+
+            updateModalDropdowns();
+            renderModalGroupCards();
+            document.getElementById('fixedMemberModal').classList.remove('hidden');
+        }
+
+        function closeFixedMemberModal() {
+            document.getElementById('fixedMemberModal').classList.add('hidden');
+        }
+
+        function updateModalDropdowns() {
+            const pSelect = document.getElementById('modalParticipantSelect');
+            const gSelect = document.getElementById('modalGroupSelect');
+
+            pSelect.innerHTML = state.participants.map(p => `
+                <option value="${p.id}">${escapeHtml(p.name)} ${state.fixedAssignments[p.id] !== undefined ? '(Sudah Dikunci)' : ''}</option>
+            `).join('');
+
+            gSelect.innerHTML = Array.from({ length: state.targetGroupCount }, (_, i) => `
+                <option value="${i}">${escapeHtml(state.customGroupNames[i] || `Kelompok ${i + 1}`)}</option>
+            `).join('');
+        }
+
+        function assignFixedMemberFromModal() {
+            const pId = document.getElementById('modalParticipantSelect').value;
+            const gIdx = parseInt(document.getElementById('modalGroupSelect').value);
+
+            if (!pId) return;
+
+            state.fixedAssignments[pId] = gIdx;
+            updateModalDropdowns();
+            renderModalGroupCards();
+            showToast('Anggota dikunci ke kelompok', 'success');
+        }
+
+        function removeFixedAssignment(pId) {
+            delete state.fixedAssignments[pId];
+            updateModalDropdowns();
+            renderModalGroupCards();
+        }
+
+        function clearAllFixedAssignments() {
+            state.fixedAssignments = {};
+            updateModalDropdowns();
+            renderModalGroupCards();
+            showToast('Semua kunci kelompok dilepaskan', 'info');
+        }
+
+        function saveAndApplyFixedMembers() {
+            closeFixedMemberModal();
+            recalculateSummary();
+            showToast('Pengaturan Anggota Tetap Disimpan', 'success');
+        }
+
+        function renderModalGroupCards() {
+            const container = document.getElementById('modalGroupCardsGrid');
+            const capacities = calculateGroupCapacities();
+
+            container.innerHTML = Array.from({ length: state.targetGroupCount }, (_, i) => {
+                const groupName = state.customGroupNames[i] || `Kelompok ${i + 1}`;
+                const cap = capacities[i] || 0;
+
+                // Fixed members in this group
+                const fixedInGroup = state.participants.filter(p => state.fixedAssignments[p.id] === i);
+
+                return `
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                            <span class="font-bold text-xs text-indigo-300">${escapeHtml(groupName)}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">${fixedInGroup.length}/${cap} Slot Tetap</span>
+                        </div>
+                        <div class="space-y-1 max-h-32 overflow-y-auto">
+                            ${fixedInGroup.length === 0 ? '<div class="text-[11px] text-slate-600 italic">Belum ada anggota tetap</div>' : ''}
+                            ${fixedInGroup.map(p => `
+                                <div class="flex items-center justify-between bg-slate-900 px-2 py-1 rounded text-xs">
+                                    <span class="text-slate-200 truncate">${escapeHtml(p.name)}</span>
+                                    <button onclick="removeFixedAssignment('${p.id}')" class="text-slate-500 hover:text-red-400 text-xs transition">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * PRESENTATION MODE (SECRET DRAW MODE)
+         */
+        function openPresentationMode(isPreview = false) {
+            if (state.participants.length === 0) {
+                showToast('Masukkan daftar peserta terlebih dahulu!', 'error');
+                return;
+            }
+
+            state.isPreviewMode = isPreview;
+            updateEventMeta();
+
+            // Perform Group Division if not generated yet
+            if (!state.currentResults) {
+                executeGroupDivision();
+            }
+
+            // Sync Titles
+            document.getElementById('presDisplayTitle').innerText = state.eventTitle;
+            document.getElementById('presDisplaySubtitle').innerText = state.eventSubtitle || "Smart Group Generator";
+            document.getElementById('presStartTitle').innerText = state.eventTitle;
+            document.getElementById('presStartDesc').innerText = state.eventSubtitle || "Klik tombol di bawah untuk memulai animasi pengacak nama dan pembentukan kelompok secara resmi.";
+
+            // Reset Stages
+            document.getElementById('presStageStart').classList.remove('hidden');
+            document.getElementById('presStageDrawing').classList.add('hidden');
+            document.getElementById('presStageResults').classList.add('hidden');
+            document.getElementById('presBadgeStatus').innerText = isPreview ? "Mode Pratinjau" : "Siap Diundi";
+
+            // Open Overlay
+            const overlay = document.getElementById('presentationModeOverlay');
+            overlay.classList.remove('hidden');
+
+            // Request Browser Fullscreen if not preview & available
+            if (!isPreview) {
+                try {
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen().catch(err => {
+                            console.warn("Fullscreen API rejected or unavailable:", err);
+                        });
+                    }
+                } catch (e) {
+                    console.warn("Fullscreen trigger error:", e);
+                }
+            }
+        }
+
+        function promptExitPresentation() {
+            document.getElementById('exitPresConfirmModal').classList.remove('hidden');
+        }
+
+        function closeExitPresModal() {
+            document.getElementById('exitPresConfirmModal').classList.add('hidden');
+        }
+
+        function confirmExitPresentation() {
+            closeExitPresModal();
+            document.getElementById('presentationModeOverlay').classList.add('hidden');
+
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        function handleFullscreenChange() {
+            if (!document.fullscreenElement && !state.isPreviewMode) {
+                // Keep overlay active even if user exited fullscreen via ESC, providing explicit exit option
+            }
+        }
+
+        /**
+         * PRESENTATION ANIMATION PROCESS
+         */
+        function startPresentationDrawProcess() {
+            // Re-execute shuffle behind the scenes to ensure accurate fresh result if re-drawing
+            executeGroupDivision();
+
+            const durationPerGroup = parseInt(document.getElementById('animDurationSelect').value) || 3000;
+
+            document.getElementById('presStageStart').classList.add('hidden');
+            document.getElementById('presStageResults').classList.add('hidden');
+            document.getElementById('presStageDrawing').classList.remove('hidden');
+            document.getElementById('presBadgeStatus').innerText = "Mengundi...";
+
+            const slotBox = document.getElementById('presSlotBox');
+            const progressBar = document.getElementById('presProgressBar');
+            const statusText = document.getElementById('presDrawStatusText');
+
+            const allNames = state.participants.map(p => p.name);
+            let startTime = Date.now();
+            const totalDuration = state.currentResults.length * durationPerGroup;
+
+            // Slot sound ticker interval
+            const ticker = setInterval(() => {
+                const randomName = allNames[Math.floor(Math.random() * allNames.length)];
+                slotBox.innerText = randomName;
+                playSound('tick');
+
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(100, (elapsed / totalDuration) * 100);
+                progressBar.style.width = `${progress}%`;
+
+                const currentGroupStep = Math.min(state.currentResults.length, Math.floor((elapsed / durationPerGroup)) + 1);
+                statusText.innerText = `Membentuk ${state.currentResults[currentGroupStep - 1]?.name || 'Kelompok'}...`;
+
+                if (elapsed >= totalDuration) {
+                    clearInterval(ticker);
+                    finishPresentationDraw();
+                }
+            }, 80);
+        }
+
+        function finishPresentationDraw() {
+            document.getElementById('presStageDrawing').classList.add('hidden');
+            document.getElementById('presStageResults').classList.remove('hidden');
+            document.getElementById('presBadgeStatus').innerText = "Pengundian Selesai";
+
+            playSound('fanfare');
+            renderPresentationResultsCards();
+        }
+
+        function renderPresentationResultsCards() {
+            const container = document.getElementById('presResultsGrid');
+            if (!state.currentResults) return;
+
+            // Note: CRITICAL RULE - Hide "TETAP" labels and internal configurations from audience view
+            container.innerHTML = state.currentResults.map((group) => `
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-2xl backdrop-blur transform hover:scale-[1.02] transition">
+                    <div class="border-b border-slate-800 pb-2 flex items-center justify-between">
+                        <h3 class="font-extrabold text-base text-indigo-300 tracking-wide">${escapeHtml(group.name)}</h3>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 font-semibold border border-indigo-500/20">${group.members.length} Anggota</span>
+                    </div>
+                    <ul class="space-y-2">
+                        ${group.members.map((m, idx) => `
+                            <li class="flex items-center text-sm text-slate-200 bg-slate-950/60 px-3 py-2 rounded-xl border border-slate-800/60">
+                                <span class="text-indigo-400 font-bold font-mono w-6">${idx + 1}.</span>
+                                <span class="font-medium">${escapeHtml(m.name)}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * EXPORT & COPY FUNCTIONS
+         */
+        function generateFormattedTextResults() {
+            if (!state.currentResults) return '';
+
+            let text = `====================================\n`;
+            text += `${state.eventTitle.toUpperCase()}\n`;
+            if (state.eventSubtitle) text += `${state.eventSubtitle}\n`;
+            text += `Tanggal: ${new Date().toLocaleDateString('id-ID')}\n`;
+            text += `====================================\n\n`;
+
+            state.currentResults.forEach((group) => {
+                text += `${group.name.toUpperCase()} (${group.members.length} Anggota):\n`;
+                group.members.forEach((m, idx) => {
+                    text += `  ${idx + 1}. ${m.name}\n`;
+                });
+                text += `\n`;
+            });
+
+            return text;
+        }
+
+        function copyAllResultsText() {
+            const text = generateFormattedTextResults();
+            if (!text) {
+                showToast('Belum ada hasil untuk disalin!', 'error');
+                return;
+            }
+
+            copyToClipboard(text);
+            showToast('Seluruh hasil berhasil disalin ke clipboard!', 'success');
+        }
+
+        function copySingleGroupText(groupIndex) {
+            if (!state.currentResults || !state.currentResults[groupIndex]) return;
+            const group = state.currentResults[groupIndex];
+
+            let text = `${group.name}:\n`;
+            group.members.forEach((m, idx) => {
+                text += `${idx + 1}. ${m.name}\n`;
+            });
+
+            copyToClipboard(text);
+            showToast(`Hasil ${group.name} disalin!`, 'success');
+        }
+
+        function downloadResultsTxt() {
+            const text = generateFormattedTextResults();
+            if (!text) {
+                showToast('Belum ada hasil untuk diunduh!', 'error');
+                return;
+            }
+
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Grouplot_${state.eventTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('File TXT berhasil diunduh', 'success');
+        }
+
+        function printResults() {
+            if (!state.currentResults) {
+                showToast('Belum ada hasil untuk dicetak!', 'error');
+                return;
+            }
+
+            document.getElementById('printEventTitle').innerText = state.eventTitle;
+            document.getElementById('printEventSubtitle').innerText = state.eventSubtitle;
+
+            const grid = document.getElementById('printGroupGrid');
+            grid.innerHTML = state.currentResults.map(group => `
+                <div class="print-card p-4 rounded-xl">
+                    <h3 class="font-bold text-base border-b border-gray-300 pb-1 mb-2">${escapeHtml(group.name)} (${group.members.length} Anggota)</h3>
+                    <ol class="list-decimal list-inside space-y-1 text-sm">
+                        ${group.members.map(m => `<li>${escapeHtml(m.name)}</li>`).join('')}
+                    </ol>
+                </div>
+            `).join('');
+
+            window.print();
+        }
+
+        /**
+         * HELPER UTILITIES
+         */
+        function copyToClipboard(str) {
+            // Robust clipboard copy mechanism using execCommand fallback
+            const el = document.createElement('textarea');
+            el.value = str;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute';
+            el.style.left = '-9999px';
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            const bgClass = type === 'success' ? 'bg-emerald-600' :
+                            type === 'error' ? 'bg-red-600' : 'bg-indigo-600';
+
+            toast.className = `${bgClass} text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xl transition transform translate-y-2 opacity-0 pointer-events-auto flex items-center space-x-2`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
